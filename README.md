@@ -18,7 +18,7 @@ account so the assistant can see and control your devices.
 ### Via HACS (custom repository)
 
 1. In HACS, open the **⋮** menu (top right) and choose **Custom repositories**.
-2. Add `https://github.com/HomiAgent/homiagent-bridge` with category **Integration**.
+2. Add `https://github.com/homiagent/homiagent-bridge` with category **Integration**.
 3. Install **HomiAgent Bridge**, then restart Home Assistant.
 
 ### Manual

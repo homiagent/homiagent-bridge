@@ -3,10 +3,10 @@
   "name": "HomiAgent Bridge",
   "codeowners": ["@chandelima"],
   "config_flow": true,
-  "documentation": "https://github.com/HomiAgent/homiagent-bridge",
+  "documentation": "https://github.com/homiagent/homiagent-bridge",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/HomiAgent/homiagent-bridge/issues",
+  "issue_tracker": "https://github.com/homiagent/homiagent-bridge/issues",
   "requirements": [],
   "version": "1.0.0"
 }
