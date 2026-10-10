@@ -1,0 +1,29 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to HomiAgent",
+        "description": "Paste the pairing key from \"Connect a home\" on the HomiAgent dashboard.",
+        "data": {
+          "credential": "Pairing key"
+        }
+      },
+      "reconfigure": {
+        "title": "Update HomiAgent pairing key",
+        "description": "Paste a fresh pairing key (from \"Regenerate\" on the dashboard) if this connection was disconnected or the key expired.",
+        "data": {
+          "credential": "Pairing key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the HomiAgent server. Try again in a moment.",
+      "invalid_credential": "This pairing key is invalid, expired, or already used. Generate a new one on the dashboard.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This connection is already configured.",
+      "reconfigure_successful": "The pairing key was updated."
+    }
+  }
+}

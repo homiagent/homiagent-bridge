@@ -1,0 +1,29 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar ao HomiAgent",
+        "description": "Cole a chave de pareamento gerada em \"Connect a home\" no painel do HomiAgent.",
+        "data": {
+          "credential": "Chave de pareamento"
+        }
+      },
+      "reconfigure": {
+        "title": "Atualizar chave de pareamento do HomiAgent",
+        "description": "Cole uma chave nova (gerada em \"Regenerate\" no painel) se esta conexão foi desconectada ou a chave expirou.",
+        "data": {
+          "credential": "Chave de pareamento"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Não foi possível alcançar o servidor do HomiAgent. Tente novamente em instantes.",
+      "invalid_credential": "Essa chave de pareamento é inválida, expirou ou já foi usada. Gere uma nova no painel.",
+      "unknown": "Erro inesperado."
+    },
+    "abort": {
+      "already_configured": "Esta conexão já está configurada.",
+      "reconfigure_successful": "A chave de pareamento foi atualizada."
+    }
+  }
+}

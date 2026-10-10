@@ -1,0 +1,12 @@
+{
+  "domain": "homiagent_bridge",
+  "name": "HomiAgent Bridge",
+  "codeowners": ["@chandelima"],
+  "config_flow": true,
+  "documentation": "https://github.com/HomiAgent/homiagent-bridge",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/HomiAgent/homiagent-bridge/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
