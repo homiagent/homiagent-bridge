@@ -18,7 +18,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.instance_id import async_get as async_get_instance_id
 
-from .const import BACKEND_WS_URL, CONF_CREDENTIAL, DOMAIN
+from .const import BACKEND_WS_URL, CONF_CREDENTIAL, CONF_PREVIOUS_CREDENTIAL, DOMAIN
 
 
 def _schema() -> vol.Schema:
@@ -137,6 +137,9 @@ class HomiAgentBridgeConfigFlow(ConfigFlow, domain=DOMAIN):
                 data_updates = {
                     **user_input,
                     CONF_CREDENTIAL: session_credential or user_input[CONF_CREDENTIAL],
+                    # A fresh pairing starts a new credential lineage; the old pair
+                    # belongs to the connection that was just replaced.
+                    CONF_PREVIOUS_CREDENTIAL: None,
                 }
                 return self.async_update_reload_and_abort(
                     self._get_reconfigure_entry(),

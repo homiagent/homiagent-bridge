@@ -10,7 +10,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.instance_id import async_get as async_get_instance_id
 
-from .const import BACKEND_WS_URL, CONF_CREDENTIAL, DOMAIN
+from .const import BACKEND_WS_URL, CONF_CREDENTIAL, CONF_PREVIOUS_CREDENTIAL, DOMAIN
 from .websocket_client import HomiAgentBridgeClient
 
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
@@ -19,15 +19,23 @@ PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HomiAgent Bridge from a config entry."""
 
-    async def _persist_rotated_credential(new_credential: str) -> None:
+    async def _persist_rotated_credential(
+        new_credential: str, previous_credential: str
+    ) -> None:
         hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_CREDENTIAL: new_credential}
+            entry,
+            data={
+                **entry.data,
+                CONF_CREDENTIAL: new_credential,
+                CONF_PREVIOUS_CREDENTIAL: previous_credential,
+            },
         )
 
     client = HomiAgentBridgeClient(
         hass,
         BACKEND_WS_URL,
         credential=entry.data[CONF_CREDENTIAL],
+        previous_credential=entry.data.get(CONF_PREVIOUS_CREDENTIAL),
         ha_instance_uuid=await async_get_instance_id(hass),
         entry_id=entry.entry_id,
         on_credential_rotated=_persist_rotated_credential,

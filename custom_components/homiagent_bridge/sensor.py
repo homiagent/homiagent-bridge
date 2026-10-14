@@ -33,6 +33,9 @@ class HomiAgentBridgeLastCommandSensor(SensorEntity):
     _attr_name = "Last command"
     _attr_should_poll = False
     _attr_icon = "mdi:console-line"
+    # Two toggles in a row produce the same text ("light.toggle on light.x"); without
+    # force_update the second one is an attribute-only change and never reaches Activity.
+    _attr_force_update = True
 
     def __init__(self, entry: ConfigEntry) -> None:
         self._entry = entry

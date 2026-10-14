@@ -2,7 +2,8 @@
 executes incoming `command` messages against it.
 
 Wire protocol:
-  -> hello       {credential, ha_instance_uuid, ha_version, snapshot_hash, time_zone}
+  -> hello       {credential, ha_instance_uuid, ha_version, snapshot_hash, time_zone,
+                  addon_version}
                   (snapshot_hash: see _compute_snapshot_hash — the backend compares it
                   with the hash of what it has stored for this connection. time_zone is
                   this HA's configured IANA zone, which the backend uses to tell where a
@@ -87,6 +88,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.json import JSONEncoder as HAJSONEncoder
 from homeassistant.helpers.storage import Store
+from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
@@ -150,11 +152,14 @@ class HomiAgentBridgeClient:
         credential: str,
         ha_instance_uuid: str,
         entry_id: str,
-        on_credential_rotated: Callable[[str], Awaitable[None]],
+        on_credential_rotated: Callable[[str, str], Awaitable[None]],
+        previous_credential: str | None = None,
     ) -> None:
         self.hass = hass
         self._url = url
         self._credential = credential
+        # Only used if the server rejects _credential — see _run_forever.
+        self._previous_credential = previous_credential
         self._ha_instance_uuid = ha_instance_uuid
         # Only for routing dispatcher signals to this entry's own sensors — a purely
         # local HA concept, unrelated to ha_instance_uuid (which identifies us to the
@@ -259,6 +264,19 @@ class HomiAgentBridgeClient:
                 await self._connect_and_listen()
                 delay = RECONNECT_MIN_DELAY
             except HelloRejected as err:
+                if self._previous_credential:
+                    # The latest rotation may not have taken (the server never saw us
+                    # store it, or it was lost on the way). The server keeps the older
+                    # credential valid until the newer one is proven, so try it once;
+                    # if it's accepted the server hands us a fresh replacement.
+                    _LOGGER.warning(
+                        "HomiAgent server rejected our credential (%s); retrying with "
+                        "the previous one",
+                        err,
+                    )
+                    self._credential = self._previous_credential
+                    self._previous_credential = None
+                    continue
                 _LOGGER.error(
                     "HomiAgent server rejected our credential (%s) — fix this from "
                     "Settings > Devices & Services > HomiAgent Bridge > Reconfigure "
@@ -324,6 +342,9 @@ class HomiAgentBridgeClient:
         _LOGGER.info("Disconnected from HomiAgent server at %s", self._url)
 
     async def _send_hello(self, snapshot_hash: str) -> None:
+        # Read from this integration's own manifest.json, so it is whatever HACS
+        # installed — never a constant that could drift from the release.
+        integration = await async_get_integration(self.hass, DOMAIN)
         await self._send(
             {
                 "type": "hello",
@@ -332,6 +353,7 @@ class HomiAgentBridgeClient:
                 "ha_version": HA_VERSION,
                 "snapshot_hash": snapshot_hash,
                 "time_zone": self.hass.config.time_zone,
+                "addon_version": str(integration.version) if integration.version else None,
             }
         )
 
@@ -368,11 +390,38 @@ class HomiAgentBridgeClient:
 
         new_credential = response.get("session_credential")
         if new_credential:
-            self._credential = new_credential
-            await self._on_credential_rotated(new_credential)
-            _LOGGER.debug("Pairing key promoted to a session credential")
+            await self._rotate_credential(new_credential)
 
         return True
+
+    async def _rotate_credential(self, new_credential: str) -> None:
+        """Stores a new credential, keeping the one in use as the fallback. Persists
+        before switching in memory: if saving fails the old credential stays in use and
+        the server, which never saw an ack, keeps it valid."""
+        previous = self._credential
+        await self._on_credential_rotated(new_credential, previous)
+        self._credential = new_credential
+        self._previous_credential = previous
+        _LOGGER.debug("Credential rotated")
+
+    async def _handle_rotate_credential(self, message: dict[str, Any]) -> None:
+        """The server pushes a replacement credential over an open connection. It is
+        acknowledged only after being stored: the server revokes the older credentials on
+        that ack, so acking early could leave us holding none that works."""
+        credential_id = message.get("credential_id")
+        new_credential = message.get("session_credential")
+        if not credential_id or not new_credential:
+            _LOGGER.warning("Ignoring malformed rotate_credential message")
+            return
+
+        try:
+            await self._rotate_credential(new_credential)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Could not store the rotated credential: %s", err)
+            await self._report_error("rotate_credential", str(err))
+            return
+
+        await self._send({"type": "credential_ack", "credential_id": credential_id})
 
     async def _handle_message(self, raw: str) -> None:
         try:
@@ -385,6 +434,8 @@ class HomiAgentBridgeClient:
         message_type = message.get("type")
         if message_type == "command":
             await self._execute_command(message)
+        elif message_type == "rotate_credential":
+            await self._handle_rotate_credential(message)
         elif message_type == "set_ignore_label":
             await self._set_ignore_label(message)
         elif message_type == "get_state":

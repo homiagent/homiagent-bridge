@@ -6,6 +6,11 @@ DOMAIN = "homiagent_bridge"
 
 CONF_CREDENTIAL = "credential"
 
+# The credential that was in use before the last rotation. The server keeps it valid until
+# the new one has been used successfully, so if the new one is ever rejected (a rotation
+# that half-failed) this one still gets the home back online and triggers another rotation.
+CONF_PREVIOUS_CREDENTIAL = "previous_credential"
+
 # HomiAgent is a hosted product — every install talks to the same company-operated
 # backend, so this is a constant, not a form field (unlike a self-hosted server address
 # would be). This file is public (HACS pulls it into every user's Home Assistant), so
